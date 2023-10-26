@@ -9,20 +9,17 @@ public class BuildingPlacement : MonoBehaviour
     [SerializeField]
     private GameObject[] buildingPrefabs;
     private GameObject _currentBuilding;
-
     private MeshRenderer _placerMeshRenderer;
-    private BoxCollider _placerCollider;
     private LayerMask _terrainMask;
+    private BoxCollider _placerCollider;
     private bool _canPlace = true;
 
     private void Start()
     {
-        SetBuilding("Headquarters");
         _placerMeshRenderer = GetComponent<MeshRenderer>();
-        Debug.Log(gameObject.GetComponent<BoxCollider>());
-        _placerCollider = gameObject.GetComponent<BoxCollider>();
-        Debug.Log(_placerCollider);
         _terrainMask = LayerMask.GetMask("Terrain");
+        _placerCollider = GetComponent<BoxCollider>();
+        SetBuilding("Headquarters");
     }
 
     // Update is called once per frame
@@ -30,10 +27,11 @@ public class BuildingPlacement : MonoBehaviour
     {
         Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out RaycastHit hit, 1000f, _terrainMask);
 
-        transform.position = hit.point;
-        transform.Rotate(0f, Input.mouseScrollDelta.y * 20, 0f);
+        Vector3 snapPosition = (Vector3) Vector3Int.RoundToInt(hit.point / 0.5f) * 0.5f;
+        transform.position = Vector3.Lerp(transform.position, snapPosition, Time.deltaTime * 50);
+        transform.Rotate(0f, Input.mouseScrollDelta.y * 15, 0f);
 
-        //_placerMeshRenderer.material.color = _canPlace ? Color.blue: Color.red;
+        _placerMeshRenderer.material.color = _canPlace ? Color.blue: Color.red;
         
         if (Input.GetMouseButtonDown(0) && hit.collider && _canPlace)
         {
@@ -49,21 +47,18 @@ public class BuildingPlacement : MonoBehaviour
         //Mesh Correction
         Mesh mesh = _currentBuilding.GetComponent<MeshFilter>().sharedMesh;
         GetComponent<MeshFilter>().sharedMesh = mesh;
-        
-        //Box Collider Correction
-        BoxCollider buildingCollider = _currentBuilding.GetComponent<BoxCollider>();
-        //Debug.Log(_placerCollider);
 
-        if (_placerCollider != null)
-            _placerCollider.size.Set(buildingCollider.size.x, buildingCollider.size.y, buildingCollider.size.z);
+        BoxCollider buildingCollider = _currentBuilding.GetComponent<BoxCollider>();
+        _placerCollider.size = buildingCollider.size;
+        _placerCollider.center = buildingCollider.center;
     }
 
-    private void OnCollisionEnter(Collision other)
+    private void OnTriggerEnter(Collider other)
     {
         _canPlace = false;
     }
 
-    private void OnCollisionExit(Collision other)
+    private void OnTriggerExit(Collider other)
     {
         _canPlace = true;
     }
